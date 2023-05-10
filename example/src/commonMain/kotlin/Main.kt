@@ -1,9 +1,14 @@
 import korlibs.event.GameButton
+import korlibs.event.Key
 import korlibs.korge.*
 import korlibs.korge.scene.*
 import korlibs.korge.view.*
+import korlibs.korge.virtualcontroller.VirtualButtonConfig
+import korlibs.korge.virtualcontroller.VirtualStickConfig
 import korlibs.korge.virtualcontroller.virtualController
+import korlibs.math.geom.Anchor
 import korlibs.math.geom.Point
+import korlibs.math.geom.Size
 import korlibs.math.geom.Vector2
 import korlibs.math.isAlmostZero
 import korlibs.time.TimeSpan
@@ -12,7 +17,7 @@ import korlibs.time.milliseconds
 import korlibs.time.seconds
 import kotlin.math.absoluteValue
 
-suspend fun main() = Korge {
+suspend fun main() = Korge(windowSize = Size(512, 512)) {
     sceneContainer().changeTo({ MainMyModuleScene() })
 }
 
@@ -20,7 +25,26 @@ class MainMyModuleScene : Scene() {
     override suspend fun SContainer.sceneMain() {
         val textInfo = text("")
 
-        val virtualController = virtualController()
+        val virtualController = virtualController(
+            sticks = listOf(
+                VirtualStickConfig(
+                    left = Key.LEFT,
+                    right = Key.RIGHT,
+                    up = Key.UP,
+                    down = Key.DOWN,
+                    lx = GameButton.LX,
+                    ly = GameButton.LY,
+                    position = Anchor.BOTTOM_LEFT,
+                )
+            ),
+            buttons = listOf(
+                VirtualButtonConfig(
+                    key = Key.SPACE,
+                    button = GameButton.BUTTON_SOUTH,
+                    position = Anchor.BOTTOM_RIGHT,
+                )
+            ),
+        )
         var jumping = false
         var moving = false
         var playerPos = Point(0f, 0f)
