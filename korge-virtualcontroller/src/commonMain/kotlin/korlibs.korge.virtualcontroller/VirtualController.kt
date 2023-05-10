@@ -18,7 +18,8 @@ data class VirtualStickConfig(
     val down: Key,
     val lx: GameButton,
     val ly: GameButton,
-    val position: Anchor,
+    val anchor: Anchor,
+    val offset: Point = Point.ZERO
 ) {
     companion object {
         val MAIN = VirtualStickConfig(
@@ -28,7 +29,7 @@ data class VirtualStickConfig(
             down = Key.DOWN,
             lx = GameButton.LX,
             ly = GameButton.LY,
-            position = Anchor.BOTTOM_LEFT,
+            anchor = Anchor.BOTTOM_LEFT,
         )
     }
 }
@@ -36,13 +37,14 @@ data class VirtualStickConfig(
 data class VirtualButtonConfig(
     val key: Key,
     val button: GameButton,
-    val position: Anchor,
+    val anchor: Anchor,
+    val offset: Point = Point.ZERO
 ) {
     companion object {
         val SOUTH = VirtualButtonConfig(
             key = Key.SPACE,
             button = GameButton.BUTTON_SOUTH,
-            position = Anchor.BOTTOM_RIGHT,
+            anchor = Anchor.BOTTOM_RIGHT,
         )
     }
 }
@@ -50,10 +52,13 @@ data class VirtualButtonConfig(
 fun Container.virtualController(
     sticks: List<VirtualStickConfig> = listOf(VirtualStickConfig.MAIN),
     buttons: List<VirtualButtonConfig> = listOf(VirtualButtonConfig.SOUTH),
+    buttonRadius: Float = 92f,
+    boundsRadiusScale: Float = 1.25f
 ): VirtualController {
     val container = container()
     val controller = VirtualController(container)
-    val rect = Rectangle.fromBounds(128f, 128f, width - 128f, height - 128f)
+    val boundsRadiusScaled = buttonRadius * boundsRadiusScale
+    val rect = Rectangle.fromBounds(boundsRadiusScaled, boundsRadiusScaled, width - boundsRadiusScaled, height - boundsRadiusScaled)
     val keyStickControllers = arrayListOf<KeyboardStickController>()
     val keyButtonControllers = arrayListOf<KeyboardButtonController>()
     val stickByButton = mutableMapOf<GameButton, VirtualStickView>()
@@ -75,8 +80,8 @@ fun Container.virtualController(
     }
     for (stick in sticks) {
         val virtualStickView =
-            VirtualStickView(controller = controller, buttonX = stick.lx, buttonY = stick.ly, radius = 92f)
-                .xy(rect.getAnchoredPoint(stick.position))
+            VirtualStickView(controller = controller, buttonX = stick.lx, buttonY = stick.ly, radius = buttonRadius)
+                .xy(rect.getAnchoredPoint(stick.anchor) + stick.offset)
 
         stickByButton[stick.lx] = virtualStickView
         stickByButton[stick.ly] = virtualStickView
@@ -89,8 +94,8 @@ fun Container.virtualController(
         )
     }
     for (button in buttons) {
-        val virtualButtonView = VirtualButtonView(controller = controller, button = button.button, radius = 92f)
-            .xy(rect.getAnchoredPoint(button.position))
+        val virtualButtonView = VirtualButtonView(controller = controller, button = button.button, radius = buttonRadius)
+            .xy(rect.getAnchoredPoint(button.anchor) + button.offset)
         container += virtualButtonView
         buttonByButton[button.button] = virtualButtonView
         keyButtonControllers += KeyboardButtonController(
@@ -288,4 +293,3 @@ class VirtualButtonView(
         }
     }
 }
-
