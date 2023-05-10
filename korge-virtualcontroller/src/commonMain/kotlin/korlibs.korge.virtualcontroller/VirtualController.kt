@@ -11,6 +11,12 @@ import korlibs.memory.*
 import korlibs.render.*
 import korlibs.time.*
 
+interface VirtualConfig {
+    val anchor: Anchor
+    val offset: Point
+    fun computePos(rect: Rectangle): Point = rect.getAnchoredPoint(anchor) + offset
+}
+
 data class VirtualStickConfig(
     val left: Key,
     val right: Key,
@@ -18,9 +24,9 @@ data class VirtualStickConfig(
     val down: Key,
     val lx: GameButton,
     val ly: GameButton,
-    val anchor: Anchor,
-    val offset: Point = Point.ZERO
-) {
+    override val anchor: Anchor,
+    override val offset: Point = Point.ZERO
+) : VirtualConfig {
     companion object {
         val MAIN = VirtualStickConfig(
             left = Key.LEFT,
@@ -37,9 +43,9 @@ data class VirtualStickConfig(
 data class VirtualButtonConfig(
     val key: Key,
     val button: GameButton,
-    val anchor: Anchor,
-    val offset: Point = Point.ZERO
-) {
+    override val anchor: Anchor,
+    override val offset: Point = Point.ZERO
+) : VirtualConfig {
     companion object {
         val SOUTH = VirtualButtonConfig(
             key = Key.SPACE,
@@ -59,6 +65,8 @@ fun Container.virtualController(
     val controller = VirtualController(container)
     val boundsRadiusScaled = buttonRadius * boundsRadiusScale
     val rect = Rectangle.fromBounds(boundsRadiusScaled, boundsRadiusScaled, width - boundsRadiusScaled, height - boundsRadiusScaled)
+    val virtualStickViews = arrayListOf<VirtualStickView>()
+    val virtualButtonViews = arrayListOf<VirtualButtonView>()
     val keyStickControllers = arrayListOf<KeyboardStickController>()
     val keyButtonControllers = arrayListOf<KeyboardButtonController>()
     val stickByButton = mutableMapOf<GameButton, VirtualStickView>()
@@ -70,7 +78,7 @@ fun Container.virtualController(
             for (button in GameButton.BUTTONS) {
                 if (it[button] != lastGamepadInfo[button]) {
                     stickByButton[button]?.let { view ->
-                        view.updateXPos(Point(it[view.buttonX], -it[view.buttonY]))
+                        view.updateXPos(Point(it[view.config.lx], -it[view.config.ly]))
                     }
                     buttonByButton[button]?.update(it[button] != 0f)
                 }
@@ -80,12 +88,13 @@ fun Container.virtualController(
     }
     for (stick in sticks) {
         val virtualStickView =
-            VirtualStickView(controller = controller, buttonX = stick.lx, buttonY = stick.ly, radius = buttonRadius)
-                .xy(rect.getAnchoredPoint(stick.anchor) + stick.offset)
+            VirtualStickView(controller = controller, config = stick, radius = buttonRadius)
+                .xy(stick.computePos(rect))
 
         stickByButton[stick.lx] = virtualStickView
         stickByButton[stick.ly] = virtualStickView
 
+        virtualStickViews += virtualStickView
         container += virtualStickView
 
         keyStickControllers += KeyboardStickController(
@@ -94,9 +103,12 @@ fun Container.virtualController(
         )
     }
     for (button in buttons) {
-        val virtualButtonView = VirtualButtonView(controller = controller, button = button.button, radius = buttonRadius)
-            .xy(rect.getAnchoredPoint(button.anchor) + button.offset)
+        val virtualButtonView = VirtualButtonView(controller = controller, config = button, radius = buttonRadius)
+            .xy(button.computePos(rect))
+
+        virtualButtonViews += virtualButtonView
         container += virtualButtonView
+
         buttonByButton[button.button] = virtualButtonView
         keyButtonControllers += KeyboardButtonController(
             button,
@@ -104,10 +116,14 @@ fun Container.virtualController(
         )
     }
 
-    addFixedUpdater(16.milliseconds) {
+    addFixedUpdater(60.hz) {
+        val rect = Rectangle.fromBounds(boundsRadiusScaled, boundsRadiusScaled, width - boundsRadiusScaled, height - boundsRadiusScaled)
+
         keyStickControllers.fastForEach { it.update(this, controller) }
         keyButtonControllers.fastForEach { it.update(this, controller) }
         controller.updated()
+        virtualStickViews.fastForEach { it.pos = it.config.computePos(rect) }
+        virtualButtonViews.fastForEach { it.pos = it.config.computePos(rect) }
     }
     return controller
 }
@@ -225,8 +241,7 @@ class VirtualController(
 
 class VirtualStickView(
     val controller: VirtualController,
-    val buttonX: GameButton = GameButton.LX,
-    val buttonY: GameButton = GameButton.LY,
+    val config: VirtualStickConfig,
     radius: Float = 64f
 ) : Container() {
     val circleOut = fastEllipse(Size(radius * 1.5f, radius * 1.5f)).anchor(Anchor.CENTER).also { it.alpha = 0.5f }
@@ -247,8 +262,8 @@ class VirtualStickView(
         val magnitudeScale = (pos.magnitude / radius).clamp01()
         val scaledPolar = polar * magnitudeScale
         circle.pos = scaledPolar * radius
-        controller[buttonX] = scaledPolar.x
-        controller[buttonY] = scaledPolar.y
+        controller[config.lx] = scaledPolar.x
+        controller[config.ly] = scaledPolar.y
     }
 
     init {
@@ -269,14 +284,14 @@ class VirtualStickView(
 
 class VirtualButtonView(
     val controller: VirtualController,
-    val button: GameButton = GameButton.XBOX_A,
+    val config: VirtualButtonConfig,
     radius: Float = 64f
 ) : Container() {
     val circle = fastEllipse(Size(radius, radius)).anchor(Anchor.CENTER).also { it.alpha = 0.8f }
     var radius: Float by circle::radiusAvg
 
     fun update(pressed: Boolean) {
-        controller[button] = pressed.toInt().toFloat()
+        controller[config.button] = pressed.toInt().toFloat()
         circle.alpha = if (pressed) 1f else .8f
     }
 
