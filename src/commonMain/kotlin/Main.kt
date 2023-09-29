@@ -6,10 +6,7 @@ import korlibs.korge.view.*
 import korlibs.korge.virtualcontroller.VirtualButtonConfig
 import korlibs.korge.virtualcontroller.VirtualStickConfig
 import korlibs.korge.virtualcontroller.virtualController
-import korlibs.math.geom.Anchor
-import korlibs.math.geom.Point
-import korlibs.math.geom.Size
-import korlibs.math.geom.Vector2
+import korlibs.math.geom.*
 import korlibs.math.isAlmostZero
 import korlibs.time.TimeSpan
 import korlibs.time.hz
@@ -49,15 +46,15 @@ class MainMyModuleScene : Scene() {
                     key = Key.RETURN,
                     button = GameButton.BUTTON_NORTH,
                     anchor = Anchor.BOTTOM_RIGHT,
-                    offset = Point(0, -150f),
+                    offset = Point(0, -150),
                 )
             ),
         )
         var jumping = false
         var moving = false
-        var playerPos = Point(0f, 0f)
-        var gravity = Vector2(0f, 10f)
-        var playerSpeed = Vector2(0f, 0f)
+        var playerPos = Point(0, 0)
+        var gravity = Vector2D(0, 10)
+        var playerSpeed = Vector2D(0, 0)
 
         fun tryMoveDelta(delta: Point): Boolean {
             val newPos = playerPos + delta
@@ -107,7 +104,7 @@ class MainMyModuleScene : Scene() {
                         jumping = true
                         updateState()
                     }
-                    playerSpeed += Vector2(0, -5.5)
+                    playerSpeed += Vector2D(0, -5.5)
                 }
             }
             changed(GameButton.LX) {
@@ -132,7 +129,7 @@ class MainMyModuleScene : Scene() {
         addFixedUpdater(STEP) {
             playerSpeed += gravity * STEP.seconds
             if (!tryMoveDelta(playerSpeed)) {
-                playerSpeed = Vector2.ZERO
+                playerSpeed = Vector2D.ZERO
                 if (jumping) {
                     jumping = false
                     updateState()
