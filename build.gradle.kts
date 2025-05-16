@@ -19,7 +19,7 @@ korge {
     targetJvm()
     targetJs()
     targetDesktopCross()
-    targetIos()
+    //targetIos()
     targetAndroid()
     serializationJson()
 }
