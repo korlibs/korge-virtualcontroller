@@ -157,7 +157,7 @@ class KeyboardStickController(
     var usedKeyboard = false
 
     fun update(view: View, controller: VirtualController) {
-        val keys = view?.stage?.input?.keys ?: return@update
+        val keys = view.stage?.input?.keys ?: return@update
         val keyPressed = keys[config.left] || keys[config.right] || keys[config.up] || keys[config.down]
         if (keyPressed) {
             usedKeyboard = true

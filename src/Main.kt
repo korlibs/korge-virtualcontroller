@@ -3,19 +3,16 @@ import korlibs.event.Key
 import korlibs.korge.*
 import korlibs.korge.scene.*
 import korlibs.korge.view.*
-import korlibs.korge.virtualcontroller.VirtualButtonConfig
-import korlibs.korge.virtualcontroller.VirtualStickConfig
-import korlibs.korge.virtualcontroller.virtualController
+import korlibs.korge.virtualcontroller.*
 import korlibs.math.geom.*
 import korlibs.math.isAlmostZero
-import korlibs.time.TimeSpan
 import korlibs.time.hz
 import korlibs.time.milliseconds
 import korlibs.time.seconds
 import kotlin.math.absoluteValue
 
 suspend fun main() = Korge(windowSize = Size(512, 512)) {
-    sceneContainer().changeTo({ MainMyModuleScene() })
+    sceneContainer().changeTo{ MainMyModuleScene() }
 }
 
 class MainMyModuleScene : Scene() {
@@ -53,7 +50,7 @@ class MainMyModuleScene : Scene() {
         var jumping = false
         var moving = false
         var playerPos = Point(0, 0)
-        var gravity = Vector2D(0, 10)
+        val gravity = Vector2D(0, 10)
         var playerSpeed = Vector2D(0, 0)
 
         fun tryMoveDelta(delta: Point): Boolean {
@@ -68,15 +65,15 @@ class MainMyModuleScene : Scene() {
         }
 
         var stateName = "-"
-        fun setState(name: String, time: TimeSpan) {
+        fun setState(name: String) {
             stateName = name
         }
 
         fun updateState() {
             when {
-                jumping -> setState("jump", 0.1.seconds)
-                moving -> setState("walk", 0.1.seconds)
-                else -> setState("idle", 0.3.seconds)
+                jumping -> setState("jump")
+                moving -> setState("walk")
+                else -> setState("idle")
             }
         }
 
@@ -99,13 +96,11 @@ class MainMyModuleScene : Scene() {
             down(GameButton.BUTTON_SOUTH) {
                 val isInGround = playerSpeed.y.isAlmostZero()
                 //if (isInGround) {
-                if (true) {
-                    if (!jumping) {
-                        jumping = true
-                        updateState()
-                    }
-                    playerSpeed += Vector2D(0, -5.5)
+                if (!jumping) {
+                    jumping = true
+                    updateState()
                 }
+                playerSpeed += Vector2D(0, -5.5)
             }
             changed(GameButton.LX) {
                 if (it.new.absoluteValue < 0.01f) {
@@ -125,9 +120,9 @@ class MainMyModuleScene : Scene() {
             }
         }
 
-        val STEP = 16.milliseconds
-        addFixedUpdater(STEP) {
-            playerSpeed += gravity * STEP.seconds
+        val step = 16.milliseconds
+        addFixedUpdater(step) {
+            playerSpeed += gravity * step.seconds
             if (!tryMoveDelta(playerSpeed)) {
                 playerSpeed = Vector2D.ZERO
                 if (jumping) {
